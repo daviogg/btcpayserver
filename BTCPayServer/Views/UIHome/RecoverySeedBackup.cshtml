@@ -2,13 +2,16 @@
 @{
     Layout = "_LayoutSimple";
     ViewData["Title"] = "Your recovery phrase";
+    var WarningMessage = @"Your recovery phrase is the only way to access your wallet if your server crash.
+                    If you lose your recovery phrase, you will no longer be able to access your wallet.
+                    Never share your recovery phrase with anyone. Anyone who has it can access your funds.";
 }
 
 @section PageHeadContent {
     <style>
-        @@media (min-width: 476px) { ol#RecoveryPhrase {max-height:16em;} }
-        @@media (min-width: 768px) { ol#RecoveryPhrase {max-height:12em;} }
-        @@media (min-width: 1200px) { ol#RecoveryPhrase {max-height:8em;} }
+        @@media (min-width: 476px) { ol#RecoveryPhrase {max-height:23em;} }
+        @@media (min-width: 768px) { ol#RecoveryPhrase {max-height:19em;} }
+        @@media (min-width: 1200px) { ol#RecoveryPhrase {max-height:15em;} }
         form#RecoveryConfirmation button { position: absolute; bottom:0; left:50%; width:200px; margin-left:-100px; }
         form#RecoveryConfirmation button:not([disabled]) { display: none; }
         form#RecoveryConfirmation input:checked ~ button[disabled] { display: none; }
@@ -27,29 +30,27 @@
         <div class="d-flex flex-column align-items-center justify-content-center">
             <span class="fa fa-info-circle align-self-center p-3" style="font-size:4em;"></span>
 
-            <h1 class="text-center text-primary mb-5">Secure your recovery&nbsp;phrase</h1>
+            <h1 class="text-center text-primary mb-5">This is your recovery phrase</h1>
         </div>
         <div class="lead text-center">
             <p>
-                <span class="d-sm-block">The words below are called your recovery phrase.</span>
+                <span class="d-sm-block">Your recovery phrase is a group of 12 random words</span>
                 <span class="d-sm-block"><strong>Write them down on a piece of paper in the exact order.</strong></span>
             </p>
         </div>
-        <ol id="RecoveryPhrase" data-mnemonic="@Model.Mnemonic" class="my-5 d-flex flex-column flex-wrap justify-content-center align-items-center text-start p-0">
+        <ol id="RecoveryPhrase" data-mnemonic="@Model.Mnemonic" class="my-5 d-flex flex-row flex-wrap justify-content-end align-items-center text-start p-0">
             @foreach (var word in Model.Words)
             {
-                <li class="ms-4 px-3 py-2 text-secondary" style="flex: 0 1;min-width:10em;">
+                <li class="ms-4 px-3 py-2 text-secondary" style="width:35%">
                     <span class="text-dark h5">@word</span>
                 </li>
             }
         </ol>
-        <div class="lead text-center" style="max-width:36em;margin-left:auto;margin-right:auto;">
+        <div class="lead text-center" style="white-space: pre-line; max-width:36em;margin-left:auto;margin-right:auto;">
             @if (Model.IsStored)
             {
                 <p>
-                    The recovery phrase is a backup that allows you to restore your wallet in case of a server crash.
-                    If you lose it or write it down incorrectly, you may permanently lose access to your funds.
-                    Do not photograph it. Do not store it digitally.
+                    @WarningMessage
                 </p>
                 <p>
                     <strong>The recovery phrase will also be stored on the server as a hot wallet.</strong>
@@ -58,9 +59,7 @@
             else
             {
                 <p>
-                    The recovery phrase allows you to access and restore your wallet.
-                    If you lose it or write it down incorrectly, you will permanently lose access to your funds.
-                    Do not photograph the recovery phrase and do not store it digitally.
+                    @WarningMessage
                 </p>
                 <p>
                     <strong>The recovery phrase will permanently be erased from the server.</strong>
