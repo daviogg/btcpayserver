@@ -11,6 +11,14 @@
 
     <RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Bitcoin-HTTPS' " />
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Bitcoin' " />
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Altcoins-HTTPS' " />
+   <ItemGroup>
+     <AssemblyAttribute Condition="'$(GitCommit)' != ''" Include="BTCPayServer.GitCommitAttribute">
+       <_Parameter1>$(GitCommit)</_Parameter1>
+     </AssemblyAttribute>
+   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Build\**" />
     <Compile Remove="wwwroot\vendor\jquery-nice-select\**" />
@@ -145,77 +153,7 @@
 
 	<ItemGroup>
     <Watch Include="Views\**\*.*"></Watch>
-    <Content Update="Views\UIApps\_ViewImports.cshtml">
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\DynamicDnsServices.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\LightningChargeServices.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\LightningWalletServices.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\LndSeedBackup.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\RPCService.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\P2PService.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\DynamicDnsService.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIServer\SSHService.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-    <Content Update="Views\UIStores\ShowToken.cshtml">
-      <Pack>$(IncludeRazorContentInPack)</Pack>
-    </Content>
-	  <Content Update="Views\UIPublic\PayButtonHandle.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIServer\LndServices.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIServer\Maintenance.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIServer\Services.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\ListWallets.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\WalletPSBTCombine.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
 	  <Content Update="Views\Wallets\WalletPSBTReady.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\WalletPSBT.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\WalletRescan.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\WalletSendVault.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\WalletTransactions.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\_Nav.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\_ViewImports.cshtml">
-	    <Pack>$(IncludeRazorContentInPack)</Pack>
-	  </Content>
-	  <Content Update="Views\UIWallets\_ViewStart.cshtml">
 	    <Pack>$(IncludeRazorContentInPack)</Pack>
 	  </Content>
 	</ItemGroup>

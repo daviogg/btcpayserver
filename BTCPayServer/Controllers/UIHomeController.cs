@@ -158,6 +158,13 @@ namespace BTCPayServer.Controllers
             return View("RecoverySeedBackup", vm);
         }
 
+        [Route("recovery-seed-validation")]
+        [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie, Policy = Policies.CanModifyStoreSettings)]
+        public IActionResult RecoverySeedValidation(RecoverySeedValidationViewModel vm)
+        {
+            return View("RecoverySeedValidation", vm);
+        }
+
         [HttpPost]
         [Route("postredirect-callback-test")]
         public ActionResult PostRedirectCallbackTestpage(IFormCollection data)
