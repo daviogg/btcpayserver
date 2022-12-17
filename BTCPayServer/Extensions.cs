@@ -336,11 +336,28 @@ namespace BTCPayServer
                 AspAction = "RecoverySeedBackup",
                 FormParameters =
                 {
+                    {"storeId", vm.StoreId},
                     { "cryptoCode", vm.CryptoCode },
                     { "mnemonic", vm.Mnemonic },
                     { "passphrase", vm.Passphrase },
                     { "isStored", vm.IsStored ? "true" : "false" },
                     { "requireConfirm", vm.RequireConfirm ? "true" : "false" },
+                    { "returnUrl", vm.ReturnUrl }
+                }
+            };
+            return controller.View("PostRedirect", redirectVm);
+        }
+
+        public static IActionResult RedirectToRecoverySeedValidation(this Controller controller, RecoverySeedValidationViewModel vm)
+        {
+            var redirectVm = new PostRedirectViewModel
+            {
+                AspController = "UIHome",
+                AspAction = "RecoverySeedValidation",
+                FormParameters =
+                {
+                    { "cryptoCode", vm.CryptoCode },
+                    { "mnemonic", vm.Mnemonic },
                     { "returnUrl", vm.ReturnUrl }
                 }
             };

@@ -4,8 +4,9 @@ namespace BTCPayServer.Models.StoreViewModels
     {
         public string CryptoCode { get; set; }
         public string Mnemonic { get; set; }
-        public string Passphrase { get; set; }
         public string ReturnUrl { get; set; }
+
+        public string StoreId { get; set; }
         
         public string[] Words
         {

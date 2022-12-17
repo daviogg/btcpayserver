@@ -328,12 +328,14 @@ namespace BTCPayServer.Controllers
                     Mnemonic = response.Mnemonic,
                     Passphrase = response.Passphrase,
                     IsStored = request.SavePrivateKeys,
-                    ReturnUrl = Url.Action(nameof(GenerateWalletConfirm), new { storeId, cryptoCode })
+                    StoreId = storeId,
+                    ReturnUrl = Url.Action(nameof(ValidateWallet), new { storeId, cryptoCode })
                 };
                 if (_BTCPayEnv.IsDeveloping)
                 {
                     GenerateWalletResponse = response;
                 }
+                TempData[nameof(response.Mnemonic)] = response.Mnemonic;
                 return this.RedirectToRecoverySeedBackup(seedVm);
             }
 
@@ -346,9 +348,28 @@ namespace BTCPayServer.Controllers
         }
 
         [HttpPost("{storeId}/onchain/{cryptoCode}/validate")]
-        public async Task<IActionResult> ValidateWallet(string storeId, string cryptoCode, WalletValidationRequest request)
+        public ActionResult ValidateWallet(string storeId, string cryptoCode)
         {
-
+            var vm = new RecoverySeedValidationViewModel
+            {
+                CryptoCode = cryptoCode,
+                Mnemonic = TempData[nameof(RecoverySeedValidationViewModel.Mnemonic)].ToString(),
+                ReturnUrl = Url.Action(nameof(GenerateWalletConfirm), new { storeId, cryptoCode })
+            };
+            
+            var redirectVm = new PostRedirectViewModel
+            {
+                AspController = "UIHome",
+                AspAction = "RecoverySeedValidation",
+                FormParameters =
+                {   
+                    {"storeId", vm.StoreId},
+                    { "cryptoCode", vm.CryptoCode },
+                    { "mnemonic", vm.Mnemonic },
+                    { "returnUrl", vm.ReturnUrl }
+                }
+            };
+            return View("PostRedirect", redirectVm);
         }               
 
         // The purpose of this action is to show the user a success message, which confirms
