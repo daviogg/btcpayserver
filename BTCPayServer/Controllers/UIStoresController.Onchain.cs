@@ -226,6 +226,7 @@ namespace BTCPayServer.Controllers
 
             return View(vm.ViewName, vm);
         }
+        
         internal GenerateWalletResponse GenerateWalletResponse;
         [HttpPost("{storeId}/onchain/{cryptoCode}/generate/{method}")]
         public async Task<IActionResult> GenerateWallet(string storeId, string cryptoCode, WalletSetupMethod method, WalletSetupRequest request)
@@ -343,6 +344,12 @@ namespace BTCPayServer.Controllers
             });
             return result;
         }
+
+        [HttpPost("{storeId}/onchain/{cryptoCode}/validate")]
+        public async Task<IActionResult> ValidateWallet(string storeId, string cryptoCode, WalletValidationRequest request)
+        {
+
+        }               
 
         // The purpose of this action is to show the user a success message, which confirms
         // that the store settings have been updated after generating a new wallet.

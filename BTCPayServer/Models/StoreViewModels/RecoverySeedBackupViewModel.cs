@@ -14,7 +14,6 @@ namespace BTCPayServer.Models.StoreViewModels
         {
             get => Mnemonic.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries);
         }
-
         public string [] ShuffleWords {
             get {
                 var rng = new System.Random();
