@@ -1,21 +1,15 @@
- <Project Sdk="Microsoft.NET.Sdk.Web">
+﻿ <Project Sdk="Microsoft.NET.Sdk.Web">
   <Import Project="../Build/Version.csproj" Condition="Exists('../Build/Version.csproj')" />
   <Import Project="../Build/Common.csproj" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-
     <PreserveCompilationContext>true</PreserveCompilationContext>
-
     <RunAnalyzersDuringLiveAnalysis>False</RunAnalyzersDuringLiveAnalysis>
-
     <RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Bitcoin-HTTPS' " />
-  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Bitcoin' " />
-  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Altcoins-HTTPS' " />
    <ItemGroup>
-     <AssemblyAttribute Condition="'$(GitCommit)' != ''" Include="BTCPayServer.GitCommitAttribute">
+     <AssemblyAttribute  Condition="'$(GitCommit)' != ''" Include="BTCPayServer.GitCommitAttribute">
        <_Parameter1>$(GitCommit)</_Parameter1>
      </AssemblyAttribute>
    </ItemGroup>
@@ -59,14 +53,9 @@
     <PackageReference Include="Fido2" Version="2.0.2" />
     <PackageReference Include="Fido2.AspNet" Version="2.0.2" />
     <PackageReference Include="HtmlSanitizer" Version="5.0.372" />
-    <PackageReference Include="LNURL" Version="0.0.24" />
+    <PackageReference Include="LNURL" Version="0.0.26" />
     <PackageReference Include="MailKit" Version="3.3.0" />
     <PackageReference Include="McMaster.NETCore.Plugins.Mvc" Version="1.4.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Filter" Version="1.1.2" />
-    <PackageReference Include="Microsoft.NetCore.Analyzers" Version="3.3.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="QRCoder" Version="1.4.3" />
     <PackageReference Include="System.IO.Pipelines" Version="6.0.3" />
     <PackageReference Include="NBitpayClient" Version="1.0.0.39" />
@@ -78,10 +67,6 @@
     <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
     <PackageReference Include="SSH.NET" Version="2020.0.2" />
-    <PackageReference Include="Text.Analyzers" Version="3.3.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
 	<ItemGroup>
