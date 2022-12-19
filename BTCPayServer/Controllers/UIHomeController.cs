@@ -159,7 +159,7 @@ namespace BTCPayServer.Controllers
         }
 
         [Route("recovery-seed-validation")]
-        [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie]
+        [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
         public IActionResult RecoverySeedValidation(RecoverySeedValidationViewModel vm)
         {
             return View("RecoverySeedValidation", vm);
