@@ -2,6 +2,7 @@
 @{
     Layout = "_LayoutSimple";
     ViewData["Title"] = "Validate recovery phrase";
+    int index = 0;
 }
 
 @section PageHeadContent {
@@ -37,10 +38,25 @@
         <ol id="RecoveryPhrase" data-mnemonic="@Model.Mnemonic" class="my-5 d-flex flex-row flex-wrap justify-content-end align-items-end text-start p-0">
             @foreach (var word in Model.ShuffleWords)
             {
+                index = index+1;
                 <li class="ms-4 px-3 py-2 text-secondary" style="width:35%">
-                    <button type="submit" id="CheckWord" class="btn btn-outline-info ms-4 px-3 w-1.5 py-2 text-secondary" style="width: 6rem"id="btnCheckWord">@word</button>
+                    <button type="submit" id="CheckWord" class="btn btn-outline-info ms-4 px-3 w-1.5 py-2 text-secondary" style="width: 6rem"id="btnCheckWord" onclick="changeColor(this, '@word', @index)">@word</button>
                 </li>
             }
         </ol>
     </div>
 </div>
+
+
+<script>
+  function changeColor(button, word, index) {
+  if (index < 0 || index >= @Model.Words.Length) {
+    return;
+  }
+  console.log(`index: ${index} word: ${word} wordAtIndex: ${"@Model.Words[index-1]"}`)
+  if (word.localeCompare('@Model.Words[index-1]') == 0) {
+    var button = document.querySelectorAll('.btn-outline-info')[index-1];
+    button.style.backgroundColor = 'green';
+  }
+}
+</script>
