@@ -72,7 +72,7 @@ namespace BTCPayServer.PaymentRequest
 
         public async Task<ViewPaymentRequestViewModel> GetPaymentRequest(string id, string userId = null)
         {
-            var pr = await _PaymentRequestRepository.FindPaymentRequest(id, null);
+            var pr = await _PaymentRequestRepository.FindPaymentRequest(id, userId);
             if (pr == null)
             {
                 return null;
@@ -97,6 +97,8 @@ namespace BTCPayServer.PaymentRequest
                 AmountDueFormatted = _currencies.FormatCurrency(amountDue, blob.Currency),
                 CurrencyData = _currencies.GetCurrencyData(blob.Currency, true),
                 LastUpdated = DateTime.UtcNow,
+                FormId = blob.FormId,
+                FormSubmitted = blob.FormResponse is not null,
                 AnyPendingInvoice = pendingInvoice != null,
                 PendingInvoiceHasPayments = pendingInvoice != null &&
                                             pendingInvoice.ExceptionStatus != InvoiceExceptionStatus.None,

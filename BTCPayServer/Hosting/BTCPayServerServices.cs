@@ -15,6 +15,7 @@ using BTCPayServer.Controllers;
 using BTCPayServer.Controllers.Greenfield;
 using BTCPayServer.Data;
 using BTCPayServer.Data.Payouts.LightningLike;
+using BTCPayServer.Forms;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Lightning;
 using BTCPayServer.Logging;
@@ -431,12 +432,14 @@ namespace BTCPayServer.Hosting
             services.AddTransient<UIPaymentRequestController>();
             // Add application services.
             services.AddSingleton<EmailSenderFactory>();
+            services.AddSingleton<InvoiceActivator>();
 
             //create a simple client which hooks up to the http scope
             services.AddScoped<BTCPayServerClient, LocalBTCPayServerClient>();
             //also provide a factory that can impersonate user/store id
             services.AddSingleton<IBTCPayServerClientFactory, BTCPayServerClientFactory>();
             services.AddPayoutProcesors();
+            services.AddForms();
 
             services.AddAPIKeyAuthentication();
             services.AddBtcPayServerAuthenticationSchemes();

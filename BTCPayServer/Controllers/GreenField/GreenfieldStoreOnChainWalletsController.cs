@@ -189,7 +189,7 @@ namespace BTCPayServer.Controllers.Greenfield
 
             var wallet = _btcPayWalletProvider.GetWallet(network);
             var walletId = new WalletId(storeId, cryptoCode);
-            var walletTransactionsInfoAsync = await _walletRepository.GetWalletTransactionsInfo(walletId);
+            var walletTransactionsInfoAsync = await _walletRepository.GetWalletTransactionsInfo(walletId, (string[] ) null);
 
             var preFiltering = true;
             if (statusFilter?.Any() is true || !string.IsNullOrWhiteSpace(labelFilter))
@@ -307,11 +307,14 @@ namespace BTCPayServer.Controllers.Greenfield
 
             var walletId = new WalletId(storeId, cryptoCode);
             var utxos = await wallet.GetUnspentCoins(derivationScheme.AccountDerivation);
-            var walletTransactionsInfoAsync = await _walletRepository.GetWalletTransactionsInfo(walletId,
-                utxos.Select(u => u.OutPoint.Hash.ToString()).ToHashSet().ToArray());
+            var walletTransactionsInfoAsync = await _walletRepository.GetWalletTransactionsInfo(walletId, 
+                utxos.SelectMany(GetWalletObjectsQuery.Get).Distinct().ToArray());
             return Ok(utxos.Select(coin =>
                 {
-                    walletTransactionsInfoAsync.TryGetValue(coin.OutPoint.Hash.ToString(), out var info);
+                    walletTransactionsInfoAsync.TryGetValue(coin.OutPoint.Hash.ToString(), out var info1);
+                    walletTransactionsInfoAsync.TryGetValue(coin.Address.ToString(), out var info2);
+                    walletTransactionsInfoAsync.TryGetValue(coin.OutPoint.ToString(), out var info3);
+                    var info = _walletRepository.Merge(info1, info2, info3);
 
                     return new OnChainWalletUTXOData()
                     {

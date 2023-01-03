@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
+using BTCPayServer.Services.Wallets;
 using Microsoft.EntityFrameworkCore;
 using NBitcoin;
 using Newtonsoft.Json;
@@ -37,8 +38,9 @@ namespace BTCPayServer.Services
             Type = type;
             Ids = ids;
         }
-        public GetWalletObjectsQuery(ObjectTypeId[]? typesIds)
+        public GetWalletObjectsQuery(WalletId? walletId,ObjectTypeId[]? typesIds)
         {
+            WalletId = walletId;
             TypesIds = typesIds;
         }
 
@@ -50,6 +52,13 @@ namespace BTCPayServer.Services
         public string[]? Ids { get; set; }
         public bool IncludeNeighbours { get; set; } = true;
         public bool UseInefficientPath { get; set; }
+
+        public static IEnumerable<ObjectTypeId> Get(ReceivedCoin coin)
+        {
+            yield return new ObjectTypeId(WalletObjectData.Types.Tx, coin.OutPoint.Hash.ToString());
+            yield return new ObjectTypeId(WalletObjectData.Types.Address, coin.Address.ToString());
+            yield return new ObjectTypeId(WalletObjectData.Types.Utxo, coin.OutPoint.ToString());
+        }
     }
 
 #nullable restore
@@ -78,7 +87,7 @@ namespace BTCPayServer.Services
 
             using var ctx = _ContextFactory.CreateContext();
 
-            // If we are using postgres, the `transactionIds.Contains(w.ChildId)` result in a long query like `ANY(@txId1, @txId2, @txId3, @txId4)`
+            // If we are using postgres, the `transactionIds.Contains(w.BId)` result in a long query like `ANY(@txId1, @txId2, @txId3, @txId4)`
             // Such request isn't well optimized by postgres, and create different requests clogging up
             // pg_stat_statements output, making it impossible to analyze the performance impact of this query.
             // On top of this, the entity version is doing 2 left join to satisfy the Include queries, resulting in n*m row returned for each transaction.
@@ -106,9 +115,9 @@ namespace BTCPayServer.Services
                 var query =
                     $"SELECT wos.\"WalletId\", wos.\"Id\", wos.\"Type\", wos.\"Data\", wol.\"LinkData\", wol.\"Type2\", wol.\"Id2\"{includeNeighbourSelect} FROM ({selectWalletObjects}) wos " +
                     $"LEFT JOIN LATERAL ( " +
-                    "SELECT \"ParentType\" AS \"Type2\", \"ParentId\" AS \"Id2\", \"Data\" AS \"LinkData\" FROM \"WalletObjectLinks\" WHERE \"WalletId\"=wos.\"WalletId\" AND \"ChildType\"=wos.\"Type\" AND \"ChildId\"=wos.\"Id\" " +
+                    "SELECT \"AType\" AS \"Type2\", \"AId\" AS \"Id2\", \"Data\" AS \"LinkData\" FROM \"WalletObjectLinks\" WHERE \"WalletId\"=wos.\"WalletId\" AND \"BType\"=wos.\"Type\" AND \"BId\"=wos.\"Id\" " +
                     "UNION " +
-                    "SELECT \"ChildType\" AS \"Type2\", \"ChildId\" AS \"Id2\", \"Data\" AS \"LinkData\" FROM \"WalletObjectLinks\" WHERE \"WalletId\"=wos.\"WalletId\" AND \"ParentType\"=wos.\"Type\" AND \"ParentId\"=wos.\"Id\"" +
+                    "SELECT \"BType\" AS \"Type2\", \"BId\" AS \"Id2\", \"Data\" AS \"LinkData\" FROM \"WalletObjectLinks\" WHERE \"WalletId\"=wos.\"WalletId\" AND \"AType\"=wos.\"Type\" AND \"AId\"=wos.\"Id\"" +
                     $" ) wol ON true " + includeNeighbourJoin;
                 cmd.CommandText = query;
                 if (queryObject.WalletId is not null)
@@ -177,21 +186,21 @@ namespace BTCPayServer.Services
                     else
                     {
                         wosById.Add(id, wo);
-                        wo.ChildLinks = new List<WalletObjectLinkData>();
+                        wo.Bs = new List<WalletObjectLinkData>();
                     }
                     if (reader["Type2"] is not DBNull)
                     {
                         var l = new WalletObjectLinkData()
                         {
-                            ChildType = (string)reader["Type2"],
-                            ChildId = (string)reader["Id2"],
+                            BType = (string)reader["Type2"],
+                            BId = (string)reader["Id2"],
                             Data = reader["LinkData"] is DBNull ? null : (string)reader["LinkData"]
                         };
-                        wo.ChildLinks.Add(l);
-                        l.Child = new WalletObjectData()
+                        wo.Bs.Add(l);
+                        l.B = new WalletObjectData()
                         {
-                            Type = l.ChildType,
-                            Id = l.ChildId,
+                            Type = l.BType,
+                            Id = l.BId,
                             Data = (!queryObject.IncludeNeighbours || reader["Data2"] is DBNull) ? null : (string)reader["Data2"]
                         };
                     }
@@ -215,8 +224,8 @@ namespace BTCPayServer.Services
                 }
                 if (queryObject.IncludeNeighbours)
                 {
-                    q = q.Include(o => o.ChildLinks).ThenInclude(o => o.Child)
-                        .Include(o => o.ParentLinks).ThenInclude(o => o.Parent);
+                    q = q.Include(o => o.Bs).ThenInclude(o => o.B)
+                        .Include(o => o.As).ThenInclude(o => o.A);
                 }
                 q = q.AsNoTracking();
 
@@ -230,9 +239,47 @@ namespace BTCPayServer.Services
             }
         }
 #nullable restore
-        public async Task<Dictionary<string, WalletTransactionInfo>> GetWalletTransactionsInfo(WalletId walletId, string[] transactionIds = null)
+
+        public async Task<Dictionary<string, WalletTransactionInfo>> GetWalletTransactionsInfo(WalletId walletId,
+            string[] transactionIds = null)
         {
-            var wos = await GetWalletObjects((GetWalletObjectsQuery)(new(walletId, WalletObjectData.Types.Tx, transactionIds)));
+            var wos = await GetWalletObjects(
+                new GetWalletObjectsQuery(walletId, WalletObjectData.Types.Tx, transactionIds));
+            return GetWalletTransactionsInfoCore(walletId, wos);
+        }
+
+        public async Task<Dictionary<string, WalletTransactionInfo>> GetWalletTransactionsInfo(WalletId walletId,
+            ObjectTypeId[] transactionIds = null)
+        {
+            var wos = await GetWalletObjects(
+                new GetWalletObjectsQuery(walletId, transactionIds));
+            
+            return GetWalletTransactionsInfoCore(walletId, wos);
+        }
+        
+        public WalletTransactionInfo Merge(params WalletTransactionInfo[] infos)
+        {
+            WalletTransactionInfo result = null;
+            foreach (WalletTransactionInfo walletTransactionInfo in infos.Where(info => info is not null))
+            {
+                if (result is null)
+                {
+                    result ??= walletTransactionInfo;
+                }
+                else
+                {
+                    
+                    result = result.Merge(walletTransactionInfo);
+                }
+            }
+
+            return result;
+        }
+
+        private Dictionary<string, WalletTransactionInfo> GetWalletTransactionsInfoCore(WalletId walletId,
+            Dictionary<WalletObjectId, WalletObjectData> wos)
+        {
+       
             var result = new Dictionary<string, WalletTransactionInfo>(wos.Count);
             foreach (var obj in wos.Values)
             {
@@ -247,7 +294,7 @@ namespace BTCPayServer.Services
                     var neighbourData = neighbour.Data is null ? null : JObject.Parse(neighbour.Data);
                     if (neighbour.Type == WalletObjectData.Types.Label)
                     {
-                        info.LabelColors.TryAdd(neighbour.Id, neighbourData?["color"]?.Value<string>() ?? "#000");
+                        info.LabelColors.TryAdd(neighbour.Id, neighbourData?["color"]?.Value<string>() ?? ColorPalette.Default.DeterministicColor(neighbour.Id));
                     }
                     else
                     {
@@ -267,7 +314,16 @@ namespace BTCPayServer.Services
             return (await
                     ctx.WalletObjects.AsNoTracking().Where(w => w.WalletId == walletId.ToString() && w.Type == WalletObjectData.Types.Label)
                     .ToArrayAsync())
-                    .Select(o => (o.Id, JObject.Parse(o.Data)["color"]!.Value<string>()!)).ToArray();
+                    .Select(o =>
+                    {
+                        if (o.Data is null)
+                        {
+                            return (o.Id,ColorPalette.Default.DeterministicColor(o.Id));
+                        }
+                        return (o.Id,
+                            JObject.Parse(o.Data)["color"]?.Value<string>() ??
+                            ColorPalette.Default.DeterministicColor(o.Id));
+                    }).ToArray();
         }
 
         public async Task<bool> RemoveWalletObjects(WalletObjectId walletObjectId)
@@ -299,10 +355,10 @@ namespace BTCPayServer.Services
             var l = new WalletObjectLinkData()
             {
                 WalletId = a.WalletId.ToString(),
-                ParentType = a.Type,
-                ParentId = a.Id,
-                ChildType = b.Type,
-                ChildId = b.Id,
+                AType = a.Type,
+                AId = a.Id,
+                BType = b.Type,
+                BId = b.Id,
                 Data = data?.ToString(Formatting.None)
             };
             ctx.WalletObjectLinks.Add(l);
@@ -345,10 +401,10 @@ namespace BTCPayServer.Services
             var l = new WalletObjectLinkData()
             {
                 WalletId = a.WalletId.ToString(),
-                ParentType = a.Type,
-                ParentId = a.Id,
-                ChildType = b.Type,
-                ChildId = b.Id,
+                AType = a.Type,
+                AId = a.Id,
+                BType = b.Type,
+                BId = b.Id,
                 Data = data?.ToString(Formatting.None)
             };
             var e = ctx.WalletObjectLinks.Add(l);
@@ -421,13 +477,20 @@ namespace BTCPayServer.Services
         }
         public Task AddWalletTransactionAttachment(WalletId walletId, uint256 txId, Attachment attachment)
         {
-            return AddWalletTransactionAttachment(walletId, txId, new[] { attachment });
+            return AddWalletTransactionAttachment(walletId, txId.ToString(), new []{attachment}, WalletObjectData.Types.Tx);
         }
-        public async Task AddWalletTransactionAttachment(WalletId walletId, uint256 txId, IEnumerable<Attachment> attachments)
+
+        public Task AddWalletTransactionAttachment(WalletId walletId, uint256 txId,
+            IEnumerable<Attachment> attachments)
+        {
+            return AddWalletTransactionAttachment(walletId, txId.ToString(), attachments, WalletObjectData.Types.Tx);
+        }
+        
+        public async Task AddWalletTransactionAttachment(WalletId walletId, string txId, IEnumerable<Attachment> attachments, string type)
         {
             ArgumentNullException.ThrowIfNull(walletId);
             ArgumentNullException.ThrowIfNull(txId);
-            var txObjId = new WalletObjectId(walletId, WalletObjectData.Types.Tx, txId.ToString());
+            var txObjId = new WalletObjectId(walletId, type, txId.ToString());
             await EnsureWalletObject(txObjId);
             foreach (var attachment in attachments)
             {
@@ -453,10 +516,10 @@ namespace BTCPayServer.Services
             ctx.WalletObjectLinks.Remove(new WalletObjectLinkData()
             {
                 WalletId = a.WalletId.ToString(),
-                ParentId = a.Id,
-                ParentType = a.Type,
-                ChildId = b.Id,
-                ChildType = b.Type
+                AId = a.Id,
+                AType = a.Type,
+                BId = b.Id,
+                BType = b.Type
             });
             try
             {

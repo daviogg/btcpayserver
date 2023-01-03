@@ -32,8 +32,8 @@
     <script src="~/vendor/clipboard.js/clipboard.js" asp-append-version="true"></script>
     <script src="~/vendor/vuejs/vue.min.js" asp-append-version="true"></script>
     <script src="~/vendor/vue-qrcode/vue-qrcode.min.js" asp-append-version="true"></script>
-    <script src="~/vendor/i18next/i18next.js" asp-append-version="true"></script>
-    <script src="~/vendor/i18next/i18nextXHRBackend.js" asp-append-version="true"></script>
+    <script src="~/vendor/i18next/i18next.min.js" asp-append-version="true"></script>
+    <script src="~/vendor/i18next/i18nextHttpBackend.min.js" asp-append-version="true"></script>
     <script src="~/vendor/i18next/vue-i18next.js" asp-append-version="true"></script>
     <script src="~/vendor/jquery-prettydropdowns/jquery.prettydropdowns.js" asp-append-version="true"></script>
     <script src="~/vendor/vex/js/vex.combined.min.js" asp-append-version="true"></script>
@@ -45,7 +45,7 @@
 
     @if (!string.IsNullOrEmpty(Model.CustomCSSLink))
     {
-        <link href="@Model.CustomCSSLink" rel="stylesheet" />
+        <link href="@Model.CustomCSSLink" rel="stylesheet" asp-append-version="true"/>
     }
 
     @if (Model.IsModal)
@@ -86,7 +86,7 @@
 
     <invoice>
         <div class="no-bounce" id="checkoutCtrl" v-cloak>
-            <div class="modal page">
+            <div class="modal page" style="min-height:100vh">
                 <div class="modal-dialog open opened" role="document" v-bind:class="{ 'expired': invoiceUnpayable, 'paid': invoicePaid, 'enter-purchaser-email': showEmailForm}">
                     <div class="modal-content long">
                         <div class="content">
@@ -149,7 +149,7 @@
     var fallbackLanguage = "en";
     startingLanguage = computeStartingLanguage();
     i18next
-        .use(window.i18nextXHRBackend)
+        .use(window.i18nextHttpBackend)
         .init({
             backend: {
                 loadPath: @Safe.Json($"{Model.RootPath}locales/{{{{lng}}}}.json")
@@ -224,6 +224,11 @@
             },
             invoicePaid: function(){
                 return  ["complete", "confirmed", "paid"].indexOf(this.srvModel.status) >= 0;
+            },
+            storeLink () {
+                return this.srvModel.merchantRefLink && this.srvModel.merchantRefLink !== this.srvModel.receiptLink
+                    ? this.srvModel.merchantRefLink
+                    : null;
             }
         },
         mounted: function(){

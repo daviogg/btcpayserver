@@ -176,6 +176,9 @@ namespace BTCPayServer.Tests
             var name = "Store" + RandomUtils.GetUInt64();
             TestLogs.LogInformation($"Created store {name}");
             Driver.WaitForElement(By.Id("Name")).SendKeys(name);
+            var rateSource = new SelectElement(Driver.FindElement(By.Id("PreferredExchange")));
+            Assert.Equal("Kraken (Recommended)", rateSource.SelectedOption.Text);
+            rateSource.SelectByText("CoinGecko");
             Driver.WaitForElement(By.Id("Create")).Click();
             Driver.FindElement(By.Id("StoreNav-StoreSettings")).Click();
             Driver.FindElement(By.Id($"SectionNav-{StoreNavPages.General.ToString()}")).Click();
@@ -183,6 +186,17 @@ namespace BTCPayServer.Tests
             if (keepId)
                 StoreId = storeId;
             return (name, storeId);
+        }
+
+        public void EnableCheckoutV2(bool bip21 = false)
+        {
+            GoToStore(StoreNavPages.CheckoutAppearance);
+            Driver.SetCheckbox(By.Id("UseNewCheckout"), true);
+            Driver.WaitForElement(By.Id("OnChainWithLnInvoiceFallback"));
+            Driver.SetCheckbox(By.Id("OnChainWithLnInvoiceFallback"), bip21);
+            Driver.FindElement(By.Id("Save")).SendKeys(Keys.Enter);
+            Assert.Contains("Store successfully updated", FindAlertMessage().Text);
+            Assert.True(Driver.FindElement(By.Id("UseNewCheckout")).Selected);
         }
 
         public Mnemonic GenerateWallet(string cryptoCode = "BTC", string seed = "", bool? importkeys = null, bool isHotWallet = false, ScriptPubKeyType format = ScriptPubKeyType.Segwit)

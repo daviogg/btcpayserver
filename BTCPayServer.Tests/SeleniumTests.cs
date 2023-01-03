@@ -65,6 +65,61 @@ namespace BTCPayServer.Tests
         }
         
         [Fact(Timeout = TestTimeout)]
+        public async Task CanUseForms()
+        {
+            using var s = CreateSeleniumTester();
+            await s.StartAsync();
+            s.RegisterNewUser(true);
+            s.CreateNewStore();
+            s.GenerateWallet(isHotWallet: true);
+            
+            // Point Of Sale
+            s.Driver.FindElement(By.Id("StoreNav-CreateApp")).Click();
+            new SelectElement(s.Driver.FindElement(By.Id("SelectedAppType"))).SelectByValue("PointOfSale");
+            s.Driver.FindElement(By.Id("AppName")).SendKeys(Guid.NewGuid().ToString());
+            s.Driver.FindElement(By.Id("Create")).Click();
+            Assert.Contains("App successfully created", s.FindAlertMessage().Text);
+            
+            new SelectElement(s.Driver.FindElement(By.Id("FormId"))).SelectByValue("Email");
+            s.Driver.FindElement(By.Id("SaveSettings")).Click();
+            Assert.Contains("App updated", s.FindAlertMessage().Text);
+
+            s.Driver.FindElement(By.Id("ViewApp")).Click();
+            var windows = s.Driver.WindowHandles;
+            Assert.Equal(2, windows.Count);
+            s.Driver.SwitchTo().Window(windows[1]);
+            s.Driver.FindElement(By.CssSelector("button[type='submit']")).Click();
+            
+            Assert.Contains("Enter your email", s.Driver.PageSource);
+            s.Driver.FindElement(By.Name("buyerEmail")).SendKeys("aa@aa.com");
+            s.Driver.FindElement(By.CssSelector("input[type='submit']")).Click();
+            
+            s.PayInvoice(true);
+            var invoiceId = s.Driver.Url[(s.Driver.Url.LastIndexOf("/", StringComparison.Ordinal) + 1)..];
+            s.GoToInvoice(invoiceId);
+            Assert.Contains("aa@aa.com", s.Driver.PageSource);
+            
+            // Payment Request
+            s.Driver.FindElement(By.Id("StoreNav-PaymentRequests")).Click();
+            s.Driver.FindElement(By.Id("CreatePaymentRequest")).Click();
+            s.Driver.FindElement(By.Id("Title")).SendKeys("Pay123");
+            s.Driver.FindElement(By.Id("Amount")).SendKeys("700");
+            new SelectElement(s.Driver.FindElement(By.Id("FormId"))).SelectByValue("Email");
+            s.Driver.FindElement(By.Id("SaveButton")).Click();
+            
+            s.Driver.FindElement(By.XPath("//a[starts-with(@id, 'Edit-')]")).Click();
+            var editUrl = s.Driver.Url;
+            s.Driver.FindElement(By.Id("ViewPaymentRequest")).Click();
+            s.Driver.FindElement(By.CssSelector("[data-test='form-button']")).Click();
+            Assert.Contains("Enter your email", s.Driver.PageSource);
+            
+            s.Driver.FindElement(By.Name("buyerEmail")).SendKeys("aa@aa.com");
+            s.Driver.FindElement(By.CssSelector("input[type='submit']")).Click();
+            s.Driver.Navigate().GoToUrl(editUrl);
+            Assert.Contains("aa@aa.com", s.Driver.PageSource);
+        }
+        
+        [Fact(Timeout = TestTimeout)]
         public async Task CanUseCPFP()
         {
             using var s = CreateSeleniumTester();
@@ -887,6 +942,11 @@ namespace BTCPayServer.Tests
             s.Driver.FindElement(By.Id("ClearExpiryDate")).Click();
             s.Driver.FindElement(By.Id("SaveButton")).Click();
             s.Driver.FindElement(By.XPath("//a[starts-with(@id, 'Edit-')]")).Click();
+
+            // amount and currency should be editable, because no invoice exists
+            s.GoToUrl(editUrl);
+            Assert.True(s.Driver.FindElement(By.Id("Amount")).Enabled);
+            Assert.True(s.Driver.FindElement(By.Id("Currency")).Enabled);
             
             s.GoToUrl(viewUrl);
             s.Driver.AssertElementNotFound(By.CssSelector("[data-test='status']"));
@@ -898,8 +958,12 @@ namespace BTCPayServer.Tests
             s.Driver.WaitForElement(By.CssSelector("invoice"));
             Assert.Contains("Awaiting Payment", s.Driver.PageSource);
             
-            // archive (from details page)
+            // amount and currency should not be editable, because invoice exists
             s.GoToUrl(editUrl);
+            Assert.False(s.Driver.FindElement(By.Id("Amount")).Enabled);
+            Assert.False(s.Driver.FindElement(By.Id("Currency")).Enabled);
+            
+            // archive (from details page)
             var payReqId = s.Driver.Url.Split('/').Last();
             s.Driver.FindElement(By.Id("ArchivePaymentRequest")).Click();
             Assert.Contains("The payment request has been archived", s.FindAlertMessage().Text);
