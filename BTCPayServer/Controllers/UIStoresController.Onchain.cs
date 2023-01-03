@@ -370,7 +370,7 @@ namespace BTCPayServer.Controllers
                 }
             };
             return View("PostRedirect", redirectVm);
-        }               
+        }       
 
         // The purpose of this action is to show the user a success message, which confirms
         // that the store settings have been updated after generating a new wallet.
