@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
+using NBitcoin;
 
 namespace BTCPayServer.Models.StoreViewModels
 {
@@ -13,7 +18,7 @@ namespace BTCPayServer.Models.StoreViewModels
 
         public string[] Words
         {
-            get => Mnemonic.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries);
+            get => Mnemonic?.Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
         }
     }
 }

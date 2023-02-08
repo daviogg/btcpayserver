@@ -78,6 +78,10 @@ namespace BTCPayServer.Plugins.PointOfSale.Controllers
             return View($"PointOfSale/Public/{viewType}", new ViewPointOfSaleViewModel
             {
                 Title = settings.Title,
+                StoreName = store.StoreName,
+                BrandColor = storeBlob.BrandColor,
+                CssFileId = storeBlob.CssFileId,
+                LogoFileId = storeBlob.LogoFileId,
                 Step = step.ToString(CultureInfo.InvariantCulture),
                 ViewType = (PosViewType)viewType,
                 ShowCustomAmount = settings.ShowCustomAmount,
@@ -352,7 +356,6 @@ namespace BTCPayServer.Plugins.PointOfSale.Controllers
                 RedirectUrl = settings.RedirectUrl,
                 SearchTerm = app.TagAllInvoices ? $"storeid:{app.StoreDataId}" : $"orderid:{AppService.GetAppOrderId(app)}",
                 RedirectAutomatically = settings.RedirectAutomatically.HasValue ? settings.RedirectAutomatically.Value ? "true" : "false" : "",
-                RequiresRefundEmail = settings.RequiresRefundEmail,
                 FormId = settings.FormId
             };
             if (HttpContext?.Request != null)
@@ -440,8 +443,7 @@ namespace BTCPayServer.Plugins.PointOfSale.Controllers
                 Description = vm.Description,
                 EmbeddedCSS = vm.EmbeddedCSS,
                 RedirectAutomatically =
-                    string.IsNullOrEmpty(vm.RedirectAutomatically) ? (bool?)null : bool.Parse(vm.RedirectAutomatically),
-                RequiresRefundEmail = vm.RequiresRefundEmail
+                    string.IsNullOrEmpty(vm.RedirectAutomatically) ? (bool?)null : bool.Parse(vm.RedirectAutomatically)
             };
 
             settings.FormId = vm.FormId;

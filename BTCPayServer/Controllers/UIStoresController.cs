@@ -504,11 +504,8 @@ namespace BTCPayServer.Controllers
             }
 
             blob.CheckoutType = model.UseNewCheckout ? Client.Models.CheckoutType.V2 : Client.Models.CheckoutType.V1;
-            if (blob.CheckoutType == Client.Models.CheckoutType.V2)
-            {
-                blob.OnChainWithLnInvoiceFallback = model.OnChainWithLnInvoiceFallback;
-            }
 
+            blob.OnChainWithLnInvoiceFallback = model.OnChainWithLnInvoiceFallback;
             blob.RequiresRefundEmail = model.RequiresRefundEmail;
             blob.LazyPaymentMethods = model.LazyPaymentMethods;
             blob.RedirectAutomatically = model.RedirectAutomatically;
@@ -759,8 +756,7 @@ namespace BTCPayServer.Controllers
 
         private IEnumerable<AvailableRateProvider> GetSupportedExchanges()
         {
-            var exchanges = _RateFactory.RateProviderFactory.GetSupportedExchanges();
-            return exchanges
+            return _RateFactory.RateProviderFactory.AvailableRateProviders
                 .Where(r => !string.IsNullOrWhiteSpace(r.Name))
                 .OrderBy(s => s.Id, StringComparer.OrdinalIgnoreCase);
 

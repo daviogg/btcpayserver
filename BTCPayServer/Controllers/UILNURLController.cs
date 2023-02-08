@@ -26,6 +26,7 @@ using BTCPayServer.Services.Rates;
 using BTCPayServer.Services.Stores;
 using LNURL;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using NBitcoin;
@@ -264,8 +265,11 @@ namespace BTCPayServer
                     break;
             }
 
+            var escapedItemId = Extensions.UnescapeBackSlashUriString(itemCode);
             var item = items.FirstOrDefault(item1 =>
-                item1.Id.Equals(itemCode, StringComparison.InvariantCultureIgnoreCase));
+                item1.Id.Equals(itemCode, StringComparison.InvariantCultureIgnoreCase) ||
+                item1.Id.Equals(escapedItemId, StringComparison.InvariantCultureIgnoreCase));
+
             if (item is null ||
                 item.Inventory <= 0 ||
                 (item.PaymentMethods?.Any() is true &&
@@ -320,6 +324,8 @@ namespace BTCPayServer
         }
 
         [HttpGet("~/.well-known/lnurlp/{username}")]
+        [EnableCors(CorsPolicies.All)]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ResolveLightningAddress(string username)
         {
             var lightningAddressSettings = await _lightningAddressService.ResolveByAddress(username);
@@ -412,8 +418,15 @@ namespace BTCPayServer
                         OrderId = AppService.GetAppOrderId(app)
                     }.ToJObject();
             }
-
-            var i = await _invoiceController.CreateInvoiceCoreRaw(invoiceRequest, store, Request.GetAbsoluteRoot(), additionalTags);
+            InvoiceEntity i;
+            try
+            {
+                i = await _invoiceController.CreateInvoiceCoreRaw(invoiceRequest, store, Request.GetAbsoluteRoot(), additionalTags);
+            }
+            catch (Exception e)
+            {
+                return this.CreateAPIError(null, e.Message);
+            }
             if (i.Type != InvoiceType.TopUp)
             {
                 min = i.GetPaymentMethod(pmi).Calculate().Due.ToDecimal(MoneyUnit.Satoshi);

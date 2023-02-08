@@ -251,17 +251,22 @@ namespace BTCPayServer.Tests
                 new CreatePointOfSaleAppRequest()
                 {
                     AppName = "test app from API",
-                    Currency = "JPY"
+                    Currency = "JPY",
+                    Title = "test app title"
                 }
             );
             Assert.Equal("test app from API", app.Name);
             Assert.Equal(user.StoreId, app.StoreId);
             Assert.Equal("PointOfSale", app.AppType);
+            Assert.Equal("test app title", app.Title);
 
             // Make sure we return a 404 if we try to get an app that doesn't exist
             await AssertHttpError(404, async () =>
             {
                 await client.GetApp("some random ID lol");
+            });
+            await AssertHttpError(404, async () => {
+                await client.GetPosApp("some random ID lol");
             });
 
             // Test that we can retrieve the app data
@@ -271,9 +276,22 @@ namespace BTCPayServer.Tests
             Assert.Equal(app.AppType, retrievedApp.AppType);
 
             // Test that we can update the app data
-            await client.UpdatePointOfSaleApp(app.Id, new CreatePointOfSaleAppRequest() { AppName = "new app name" });
+            await client.UpdatePointOfSaleApp(
+                app.Id,
+                new CreatePointOfSaleAppRequest()
+                {
+                    AppName = "new app name",
+                    Title = "new app title"
+                }
+            );
+            // Test generic GET app endpoint first
             retrievedApp = await client.GetApp(app.Id);
             Assert.Equal("new app name", retrievedApp.Name);
+
+            // Test the POS-specific endpoint also
+            var retrievedPosApp = await client.GetPosApp(app.Id);
+            Assert.Equal("new app name", retrievedPosApp.Name);
+            Assert.Equal("new app title", retrievedPosApp.Title);
 
             // Make sure we return a 404 if we try to delete an app that doesn't exist
             await AssertHttpError(404, async () =>
@@ -291,7 +309,7 @@ namespace BTCPayServer.Tests
 
         [Fact(Timeout = TestTimeout)]
         [Trait("Integration", "Integration")]
-        public async Task CanCreateCrowdfundApp()
+        public async Task CanCreateReadAndDeleteCrowdfundApp()
         {
             using var tester = CreateServerTester();
             await tester.StartAsync();
@@ -394,10 +412,106 @@ namespace BTCPayServer.Tests
             );
 
             // Test creating a crowdfund app
-            var app = await client.CreateCrowdfundApp(user.StoreId, new CreateCrowdfundAppRequest() { AppName = "test app from API" });
+            var app = await client.CreateCrowdfundApp(
+                user.StoreId,
+                new CreateCrowdfundAppRequest() 
+                {
+                    AppName = "test app from API",
+                    Title = "test app title"
+                }
+            );
             Assert.Equal("test app from API", app.Name);
             Assert.Equal(user.StoreId, app.StoreId);
             Assert.Equal("Crowdfund", app.AppType);
+
+            // Make sure we return a 404 if we try to get an app that doesn't exist
+            await AssertHttpError(404, async () => {
+                await client.GetApp("some random ID lol");
+            });
+            await AssertHttpError(404, async () => {
+                await client.GetCrowdfundApp("some random ID lol");
+            });
+
+            // Test that we can retrieve the app data
+            var retrievedApp = await client.GetApp(app.Id);
+            Assert.Equal(app.Name, retrievedApp.Name);
+            Assert.Equal(app.StoreId, retrievedApp.StoreId);
+            Assert.Equal(app.AppType, retrievedApp.AppType);
+
+            // Test the crowdfund-specific endpoint also
+            var retrievedPosApp = await client.GetCrowdfundApp(app.Id);
+            Assert.Equal(app.Name, retrievedPosApp.Name);
+            Assert.Equal(app.Title, retrievedPosApp.Title);
+
+            // Make sure we return a 404 if we try to delete an app that doesn't exist
+            await AssertHttpError(404, async () =>
+            {
+                await client.DeleteApp("some random ID lol");
+            });
+
+            // Test deleting the newly created app
+            await client.DeleteApp(retrievedApp.Id);
+            await AssertHttpError(404, async () => {
+                await client.GetApp(retrievedApp.Id);
+            });
+        }
+
+        [Fact(Timeout = TestTimeout)]
+        [Trait("Integration", "Integration")]
+        public async Task CanGetAllApps()
+        {
+            using var tester = CreateServerTester();
+            await tester.StartAsync();
+            var user = tester.NewAccount();
+            await user.RegisterDerivationSchemeAsync("BTC");
+            var client = await user.CreateClient();
+
+            var posApp = await client.CreatePointOfSaleApp(
+                user.StoreId,
+                new CreatePointOfSaleAppRequest()
+                {
+                    AppName = "test app from API",
+                    Currency = "JPY"
+                }
+            );
+            var crowdfundApp = await client.CreateCrowdfundApp(user.StoreId, new CreateCrowdfundAppRequest() { AppName = "test app from API" });
+           
+           // Create another store and one app on it so we can get all apps from all stores for the user below
+            var newStore = await client.CreateStore(new CreateStoreRequest() { Name = "A" });
+            var newApp = await client.CreateCrowdfundApp(newStore.Id, new CreateCrowdfundAppRequest() { AppName = "new app" });
+
+            Assert.NotEqual(newApp.Id, user.StoreId);
+
+            // Get all apps for a specific store first
+            var apps = await client.GetAllApps(user.StoreId);
+
+            Assert.Equal(2, apps.Length);
+
+            Assert.Equal(posApp.Name, apps[0].Name);
+            Assert.Equal(posApp.StoreId, apps[0].StoreId);
+            Assert.Equal(posApp.AppType, apps[0].AppType);
+
+            Assert.Equal(crowdfundApp.Name, apps[1].Name);
+            Assert.Equal(crowdfundApp.StoreId, apps[1].StoreId);
+            Assert.Equal(crowdfundApp.AppType, apps[1].AppType);
+
+            // Get all apps for all store now
+            apps = await client.GetAllApps();
+
+            Assert.Equal(3, apps.Length);
+
+            Assert.Equal(posApp.Name, apps[0].Name);
+            Assert.Equal(posApp.StoreId, apps[0].StoreId);
+            Assert.Equal(posApp.AppType, apps[0].AppType);
+
+            Assert.Equal(crowdfundApp.Name, apps[1].Name);
+            Assert.Equal(crowdfundApp.StoreId, apps[1].StoreId);
+            Assert.Equal(crowdfundApp.AppType, apps[1].AppType);
+            
+            Assert.Equal(newApp.Name, apps[2].Name);
+            Assert.Equal(newApp.StoreId, apps[2].StoreId);
+            Assert.Equal(newApp.AppType, apps[2].AppType);
+
         }
 
         [Fact(Timeout = TestTimeout)]
@@ -672,10 +786,12 @@ namespace BTCPayServer.Tests
         public async Task CanUsePullPaymentViaAPI()
         {
             using var tester = CreateServerTester();
+            tester.ActivateLightning();
             await tester.StartAsync();
+            await tester.EnsureChannelsSetup();
             var acc = tester.NewAccount();
-            acc.Register();
-            await acc.CreateStoreAsync();
+            await acc.GrantAccessAsync(true);
+            acc.RegisterLightningNode("BTC", LightningConnectionType.CLightning, false);
             var storeId = (await acc.RegisterDerivationSchemeAsync("BTC", importKeysToNBX: true)).StoreId;
             var client = await acc.CreateClient();
             var result = await client.CreatePullPayment(storeId, new CreatePullPaymentRequest()
@@ -856,6 +972,8 @@ namespace BTCPayServer.Tests
                 PaymentMethods = new[] { "BTC" }
             });
 
+            await this.AssertAPIError("lnurl-not-supported", async () => await unauthenticated.GetPullPaymentLNURL(pp.Id));
+
             destination = (await tester.ExplorerNode.GetNewAddressAsync()).ToString();
             TestLogs.LogInformation("Try to pay it in BTC");
             payout = await unauthenticated.CreatePayout(pp.Id, new CreatePayoutRequest()
@@ -906,6 +1024,60 @@ namespace BTCPayServer.Tests
             payout = (await client.GetPayouts(payout.PullPaymentId)).First(data => data.Id == payout.Id);
             Assert.Equal(PayoutState.Completed, payout.State);
             await AssertAPIError("invalid-state", async () => await client.MarkPayoutPaid(storeId, payout.Id));
+
+            // Test LNURL values
+            var test4 = await client.CreatePullPayment(storeId, new Client.Models.CreatePullPaymentRequest()
+            {
+                Name = "Test 3",
+                Amount = 12.303228134m,
+                Currency = "BTC",
+                PaymentMethods = new[] { "BTC", "BTC-LightningNetwork", "BTC_LightningLike" }
+            });
+            var lnrURLs = await unauthenticated.GetPullPaymentLNURL(test4.Id);
+            Assert.IsType<string>(lnrURLs.LNURLBech32);
+            Assert.IsType<string>(lnrURLs.LNURLUri);
+            
+            //permission test around auto approved pps and payouts
+            var nonApproved = await acc.CreateClient(Policies.CanCreateNonApprovedPullPayments);
+            var approved = await acc.CreateClient(Policies.CanCreatePullPayments);
+            await AssertPermissionError(Policies.CanCreatePullPayments, async () =>
+            {
+                var pullPayment = await nonApproved.CreatePullPayment(acc.StoreId, new CreatePullPaymentRequest()
+                {
+                    Amount = 100,
+                    Currency = "USD",
+                    Name = "pull payment",
+                    PaymentMethods = new[] { "BTC" },
+                    AutoApproveClaims = true
+                });
+            });
+            await AssertPermissionError(Policies.CanCreatePullPayments, async () =>
+            {
+                var pullPayment = await nonApproved.CreatePayout(acc.StoreId, new CreatePayoutThroughStoreRequest()
+                {
+                    Amount = 100,
+                    PaymentMethod = "BTC",
+                    Approved = true,
+                    Destination = new Key().GetAddress(ScriptPubKeyType.TaprootBIP86, Network.RegTest).ToString()
+                });
+            });
+            
+            var pullPayment = await approved.CreatePullPayment(acc.StoreId, new CreatePullPaymentRequest()
+            {
+                Amount = 100,
+                Currency = "USD",
+                Name = "pull payment",
+                PaymentMethods = new[] { "BTC" },
+                AutoApproveClaims = true
+            });
+            
+            var p = await approved.CreatePayout(acc.StoreId, new CreatePayoutThroughStoreRequest()
+            {
+                Amount = 100,
+                PaymentMethod = "BTC",
+                Approved = true,
+                Destination = new Key().GetAddress(ScriptPubKeyType.TaprootBIP86, Network.RegTest).ToString()
+            });
         }
 
         [Fact]
@@ -2216,7 +2388,13 @@ namespace BTCPayServer.Tests
 
             // Amount received might be bigger because of internal implementation shit from lightning
             Assert.True(LightMoney.Satoshis(1000) <= invoice.AmountReceived);
+            
+            // check payments list for store node
+            var payments = await client.GetLightningPayments(user.StoreId, "BTC");
+            Assert.NotEmpty(payments);
+            Assert.Contains(payments, i => i.BOLT11 == merchantInvoice.BOLT11);
 
+            // Node info
             info = await client.GetLightningNodeInfo(user.StoreId, "BTC");
             Assert.Single(info.NodeURIs);
             Assert.NotEqual(0, info.BlockHeight);
@@ -3472,6 +3650,9 @@ namespace BTCPayServer.Tests
                     new StoreRateConfiguration() { IsCustomScript = true, EffectiveScript = "BTC_XYZ = 1", Spread = 10m, }))
                 .IsCustomScript);
 
+            Assert.Equal(0.9m,
+                Assert.Single(await clientBasic.GetStoreRates(user.StoreId, new[] { "BTC_XYZ" })).Rate);
+            
             config = await clientBasic.GetStoreRateConfiguration(user.StoreId);
             Assert.NotNull(config);
             Assert.NotNull(config.EffectiveScript);

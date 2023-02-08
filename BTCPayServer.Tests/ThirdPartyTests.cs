@@ -78,7 +78,7 @@ namespace BTCPayServer.Tests
             string[] brokenShitcoinCasinos = { };
             var skipped = 0;
             var factory = FastTests.CreateBTCPayRateFactory();
-            var directlySupported = factory.GetSupportedExchanges().Where(s => s.Source == RateSource.Direct)
+            var directlySupported = factory.AvailableRateProviders.Where(s => s.Source == RateSource.Direct)
                 .Select(s => s.Id).ToHashSet();
             foreach (var result in factory
                 .Providers
@@ -206,7 +206,8 @@ namespace BTCPayServer.Tests
             {
                 "https://www.btse.com", // not allowing to be hit from circleci
                 "https://www.bitpay.com", // not allowing to be hit from circleci
-                "https://support.bitpay.com"
+                "https://support.bitpay.com",
+                "https://www.coingecko.com" // unhappy service
             };
 
             foreach (var match in regex.Matches(text).OfType<Match>())

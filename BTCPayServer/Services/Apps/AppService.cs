@@ -134,6 +134,9 @@ namespace BTCPayServer.Services.Apps
                 perks = newPerksOrder.ToArray();
             }
 
+            var store = appData.StoreData;
+            var storeBlob = store.GetStoreBlob();
+
             return new ViewCrowdfundViewModel
             {
                 Title = settings.Title,
@@ -142,6 +145,10 @@ namespace BTCPayServer.Services.Apps
                 CustomCSSLink = settings.CustomCSSLink,
                 MainImageUrl = settings.MainImageUrl,
                 EmbeddedCSS = settings.EmbeddedCSS,
+                StoreName = store.StoreName,
+                CssFileId = storeBlob.CssFileId,
+                LogoFileId = storeBlob.LogoFileId,
+                BrandColor = storeBlob.BrandColor,
                 StoreId = appData.StoreDataId,
                 AppId = appData.Id,
                 StartDate = settings.StartDate?.ToUniversalTime(),
@@ -436,16 +443,24 @@ namespace BTCPayServer.Services.Apps
                     (storeId == null || us.StoreDataId == storeId))
                 .Join(ctx.Apps, us => us.StoreDataId, app => app.StoreDataId,
                     (us, app) =>
-                        new ListAppsViewModel.ListAppViewModel()
+                        new ListAppsViewModel.ListAppViewModel
                         {
                             IsOwner = us.Role == StoreRoles.Owner,
                             StoreId = us.StoreDataId,
                             StoreName = us.StoreData.StoreName,
                             AppName = app.Name,
                             AppType = app.AppType,
-                            Id = app.Id
+                            Id = app.Id,
+                            Created = app.Created,
                         })
+                .OrderBy(b => b.Created)
                 .ToArrayAsync();
+            
+            // allowNoUser can lead to apps being included twice, unify them with distinct
+            if (allowNoUser)
+            {
+                listApps = listApps.DistinctBy(a => a.Id).ToArray();
+            }
 
             foreach (ListAppsViewModel.ListAppViewModel app in listApps)
             {
